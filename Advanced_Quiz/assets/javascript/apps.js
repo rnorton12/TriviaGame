@@ -1,12 +1,11 @@
-
- // Requirements
- // need a start button
- // Time remaining counter
- // Show 1 question at a time
- // count down timer is for each question
- // Show correct answer then move to next question
- // at the end, show correct answer count, wrong answer count and unaswered count
- // start over does not reload page, it resets the game
+// Requirements
+// need a start button
+// Time remaining counter
+// Show 1 question at a time
+// count down timer is for each question
+// Show correct answer then move to next question
+// at the end, show correct answer count, wrong answer count and unaswered count
+// start over does not reload page, it resets the game
 
 
 
@@ -14,34 +13,82 @@
 
 
 $(document).ready(function () {
-    var MAX_TIME = 10;
+    var MAX_TIME_REMAINING = 10;
+    var MAX_WAIT_TIME_REMAINING = 3;
 
-    var countDownTimer = undefined;
-    var timeRemaining = MAX_TIME;
+    var timerCountDown = undefined;
+    var timerWait = undefined;
+    var timeRemaining = MAX_TIME_REMAINING;
+    var waitTimeRemaining = MAX_WAIT_TIME_REMAINING;
     var listOfCategories = undefined;
     var gameObject = {
         sessionToken: "",
-        selectedCategory: { // selected category
-            id: 0,
-            name: "",
-            totalQuestions: 0, // total number of questions available for the category
-            numberQuestionsSelected: 0, // the number of questions from the category selected by the user
-            listOfQuestions: []
-        },
-        areQuestionsLoaded: false
+        categoryId: 0,
+        categoryName: "",
+        totalQuestions: 0, // total number of questions available for the category
+        numberQuestionsSelected: 0, // the number of questions from the category selected by the user
+        listOfQuestions: [], // list of questions with length equal to numberQuestionsSelected
+        shuffledAnswerArray: [], // shuffled answer array for the current question
+        currentQuestionNumber: 0 // current question number from 0 to numberQuestionsSelected - 1
     } // end var gameObject
 
-    var answersArray = [];
-    var genericTimeout = undefined;
-    
-    function timer() {
-       $("#count-down-timer").html("Time Remaining = " + timeRemaining);
-       if (timeRemaining < 0) {
+    var readyToContinue = false;
+
+    function countDownTimer() {
+        $("#count-down-timer").html("Time Remaining = " + timeRemaining);
+        if (timeRemaining < 0) {
             $("#count-down-timer").html("Time is Up");
-           // clearInterval(countDownTimer);
-       } else {
-        timeRemaining--;
-       }
+            clearInterval(timerCountDown);
+            timeRemaining = MAX_TIME_REMAINING;
+
+            var questionNumber = gameObject.currentQuestionNumber;
+            var correctAnswer = gameObject.listOfQuestions[questionNumber].correct_answer;
+
+            // the correct answer is
+            $("#correct-answer").html("The correct answer is: " + correctAnswer);
+
+            timerWait = setInterval(function () {
+                waitTimer()
+            }, 1000);
+        } else {
+            timeRemaining--;
+        }
+    }
+
+    function waitTimer() {
+        if (waitTimeRemaining < 0) {
+            clearInterval(timerWait);
+            waitTimeRemaining = MAX_WAIT_TIME_REMAINING;
+
+            // reset some page elements
+            $("#result").html("");
+            $("#correct-answer").html("");
+
+            for(var i = 0; i < gameObject.shuffledAnswerArray.length; i++) {
+                $(".form-check").detach();
+            }
+            shuffledAnswerArray = []; // reset the array
+            
+            var questionCount = gameObject.numberQuestionsSelected;
+            var questionNumber = gameObject.currentQuestionNumber;
+
+            console.log("questionNumber: " + questionNumber);
+            console.log("questionCount: " + questionCount);
+            if (questionNumber < (questionCount - 1)) {
+                gameObject.currentQuestionNumber ++;
+                questionNumber = gameObject.currentQuestionNumber;
+                displayNextQuestion(gameObject.listOfQuestions[questionNumber].question);
+                displayAnswers(gameObject.listOfQuestions[questionNumber]);
+
+                timerCountDown = setInterval(function () {
+                    countDownTimer()
+                }, 1000);
+            } else {
+                $("#result").html("Game Over");
+            }
+        } else {
+            waitTimeRemaining--;
+        }
     }
 
     // I'm using the online trivia database at https://opentdb.com to automatically generate
@@ -75,7 +122,7 @@ $(document).ready(function () {
         $.ajax({
             url: "https://opentdb.com/api_token.php?command=request",
             method: "GET"
-        }).done(function(response) {
+        }).done(function (response) {
             console.log("response_code: " + response.response_code);
             console.log("response_message: " + response.response_message);
             console.log("token: " + response.token);
@@ -97,7 +144,7 @@ $(document).ready(function () {
         $.ajax({
             url: "https://opentdb.com/api_category.php",
             method: "GET"
-        }).done(function(listOfCategories) {
+        }).done(function (listOfCategories) {
             for (var i = 0; i < listOfCategories.trivia_categories.length; i++) {
                 console.log("id: " + listOfCategories.trivia_categories[i].id);
                 console.log("name: " + listOfCategories.trivia_categories[i].name);
@@ -112,7 +159,7 @@ $(document).ready(function () {
     }
 
     function populateQuestionCount() {
-        for (var i = 1; i <= gameObject.selectedCategory.totalQuestions; i++) {
+        for (var i = 1; i <= gameObject.totalQuestions; i++) {
             // create an <option>
             var number = $("<option>");
             number.attr("value", i);
@@ -139,11 +186,11 @@ $(document).ready(function () {
         $.ajax({
             url: "https://opentdb.com/api_count.php?category=" + categoryId,
             method: "GET"
-        }).done(function(response) {
+        }).done(function (response) {
             console.log(response);
             console.log("response: " + response.category_question_count.total_question_count);
             console.log("totalCategoryQuestions: " + response.category_question_count.total_question_count);
-            gameObject.selectedCategory.totalQuestions = response.category_question_count.total_question_count;
+            gameObject.totalQuestions = response.category_question_count.total_question_count;
             populateQuestionCount();
         })
     }
@@ -151,42 +198,40 @@ $(document).ready(function () {
     // To generate a question with multiple choice use: https://opentdb.com/api.php?amount=10&category=10&type=multiple
     //
     // The response returned is an object with the following content:
-   /*  {
-        "response_code": 0,
-        "results": [
-        {
-            "category": "Entertainment: Film",
-            "type": "multiple",
-            "difficulty": "hard",
-            "question": "What was the last Marx Brothers film to feature Zeppo?",
-            "correct_answer": "Duck Soup",
-            "incorrect_answers": [
-            "A Night at the Opera",
-            "A Day at the Races",
-            "Monkey Business"]
-        }
-        ]
-    } */
+    /*  {
+         "response_code": 0,
+         "results": [
+         {
+             "category": "Entertainment: Film",
+             "type": "multiple",
+             "difficulty": "hard",
+             "question": "What was the last Marx Brothers film to feature Zeppo?",
+             "correct_answer": "Duck Soup",
+             "incorrect_answers": [
+             "A Night at the Opera",
+             "A Day at the Races",
+             "Monkey Business"]
+         }
+         ]
+     } */
     function generateQuestions() {
         var response = undefined;
-        var questionCount = gameObject.selectedCategory.numberQuestionsSelected;
-        var categoryId = gameObject.selectedCategory.id;
+        var questionCount = gameObject.numberQuestionsSelected;
+        var categoryId = gameObject.categoryId;
         var queryURL = "https://opentdb.com/api.php?" + "amount=" + questionCount + "&category=" + categoryId + "&type=multiple";
 
         console.log(queryURL);
         $.ajax({
             url: queryURL,
             method: "GET"
-        }).done(function(response) {
+        }).done(function (response) {
             console.log(response);
             for (var i = 0; i < response.results.length; i++) {
-                gameObject.selectedCategory.listOfQuestions.push(response.results[i]);
-                console.log("Question: " + response.results[i].question);
-                console.log("Answers: " + response.results[i]);
+                gameObject.listOfQuestions.push(response.results[i]);
+                console.log("question: " + gameObject.listOfQuestions[i].question);
+                console.log("correct answer: " + gameObject.listOfQuestions[i].correct_answer);
+                console.log("incorrect answers: " + gameObject.listOfQuestions[i].incorrect_answers.toString());
             }
-
-            displayNextQuestion(response.results[0].question);
-            displayQuestionAnswers(response.results[0]);
         });
     }
 
@@ -195,60 +240,89 @@ $(document).ready(function () {
         $("#question").html(question);
     }
 
-    function displayQuestionAnswers(question) {
-        var answers = [];
-        answers.push(question.correct_answer);
-        var elementDiv = $("<div>");
-        elementDiv.html(answers[0]);
-        $("#answers").append(elementDiv);
+    function displayAnswers(answers) {
+        var answerArray = [];
+        answerArray.push(answers.correct_answer);
 
-        for (var i = 0; i < question.incorrect_answers.length; i++) {
-            answers.push(question.incorrect_answers[i]);
-            elementDiv = $("<div>");
-            elementDiv.html(answers[i + 1]);
-            $("#answers").append(elementDiv);
+        for (var i = 0; i < answers.incorrect_answers.length; i++) {
+            answerArray.push(answers.incorrect_answers[i]);
         }
-        console.log("unshuffked : " + answers.toString());
-        answersArray = shuffle(answers);
+        console.log("unshuffled : " + answerArray.toString());
+        gameObject.shuffledAnswerArray = shuffle(answerArray);
+        console.log("shuffled: " + gameObject.shuffledAnswerArray.toString());
 
+        for (var i = 0; i < gameObject.shuffledAnswerArray.length; i++) {
+            // <div class="form-check form-check-inline">
+            // <label class="form-check-label">
+            // <input class="form-check-input" type="radio" name="inlineRadioOptions" id="answer-1" value="option-1">text
+            // </label>
+            // </div>
+            var elementDiv = $("<div>");
+            elementDiv.addClass("form-check form-check-inline");
+            elementDiv.attr("id", "form-check-" + (i + 1));
+
+            var elementLabel = $("<label>");
+            elementLabel.addClass("form-check-label");
+            elementLabel.attr("id", "form-check-label-" + (i + 1));
+
+            var elementInput = '<input class="form-check-input" type="radio" name="inlineRadioOptions"';
+            elementInput += " id=" + "answer-" + (i + 1);
+            elementInput += " value=" + "option-" + (i + 1) + ">";
+            elementInput += gameObject.shuffledAnswerArray[i];
+
+            $("#answers").append(elementDiv);
+            $("#form-check-" + (i + 1)).append(elementLabel);
+            $("#form-check-label-" + (i + 1)).append(elementInput);
+
+            if (i === 0) {
+                $("#answer-" + (i + 1)).prop("checked", true);
+            }
+        }
     }
 
     function shuffle(array) {
-        var currentIndex = array.length, temporaryValue, randomIndex;
-      
+        var currentIndex = array.length,
+            temporaryValue, randomIndex;
+
         // While there remain elements to shuffle...
         while (0 !== currentIndex) {
-      
-          // Pick a remaining element...
-          randomIndex = Math.floor(Math.random() * currentIndex);
-          currentIndex -= 1;
-      
-          // And swap it with the current element.
-          temporaryValue = array[currentIndex];
-          array[currentIndex] = array[randomIndex];
-          array[randomIndex] = temporaryValue;
+
+            // Pick a remaining element...
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex -= 1;
+
+            // And swap it with the current element.
+            temporaryValue = array[currentIndex];
+            array[currentIndex] = array[randomIndex];
+            array[randomIndex] = temporaryValue;
         }
-      
+
         console.log("shuffled: " + array.toString());
         return array;
-      }
+    }
+
 
     // This function will execute once when the page is loaded
     getSessionToken();
     getListOfCategories();
-    
+
     $(".start").on("click", function () {
-        timeRemaining = MAX_TIME;
-        countDownTimer = setInterval(function(){ timer() }, 1000);
-        generateQuestions();
+        var questionNumber = gameObject.currentQuestionNumber;
+        console.log("questionNumber: " + questionNumber);
+        displayNextQuestion(gameObject.listOfQuestions[questionNumber].question);
+        displayAnswers(gameObject.listOfQuestions[questionNumber]);
+
+        timerCountDown = setInterval(function () {
+            countDownTimer()
+        }, 1000);
     });
 
     $("#select-category").click(function () {
         var selectedText = $("#categories").find("option:selected").text();
         var selectedValue = $("#categories").val();
         console.log("Selected Text: " + selectedText + " Value: " + selectedValue);
-        gameObject.selectedCategory.id = selectedValue;
-        gameObject.selectedCategory.name = selectedText;
+        gameObject.categoryId = selectedValue;
+        gameObject.categoryName = selectedText;
         getNumberOfCategoryQuestions(selectedValue);
     });
 
@@ -256,7 +330,40 @@ $(document).ready(function () {
         var selectedText = $("#number-of-questions").find("option:selected").text();
         var selectedValue = $("#number-of-questions").val();
         console.log("Selected Text: " + selectedText + " Value: " + selectedValue);
-        gameObject.selectedCategory.numberQuestionsSelected = selectedValue;
+        gameObject.numberQuestionsSelected = selectedValue;
+        generateQuestions();
     });
 
- });
+    $(".check-answer").on("click", function () {
+        var isChecked = false;
+        var questionNumber = gameObject.currentQuestionNumber;
+
+        clearInterval(timerCountDown); // stop the count down timer
+
+        // check if the user got the right or wrong answer
+        for (var i = 0; i < gameObject.shuffledAnswerArray.length; i++) {
+            isChecked = $("#answer-" + (i + 1)).is(":checked");
+            if (isChecked) {
+                var userAnswer = gameObject.shuffledAnswerArray[i];
+                var correctAnswer = gameObject.listOfQuestions[questionNumber].correct_answer;
+
+                // is this the correct answer
+                if (userAnswer === correctAnswer) {
+                    // correct answer
+                    $("#result").html("Correct Answer");
+                } else {
+                    // wrong answer
+                    $("#result").html("Wrong Answer");
+
+                    // the correct answer is
+                    $("#correct-answer").html("The correct answer is: " + correctAnswer);
+                }
+                break;
+            }
+        }
+        timerWait = setInterval(function () {
+            waitTimer()
+        }, 1000);
+    });
+
+});
