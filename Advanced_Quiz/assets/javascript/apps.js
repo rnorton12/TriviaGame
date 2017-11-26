@@ -30,7 +30,9 @@ $(document).ready(function () {
         },
         areQuestionsLoaded: false
     } // end var gameObject
-      
+
+    var answersArray = [];
+    var genericTimeout = undefined;
     
     function timer() {
        $("#count-down-timer").html("Time Remaining = " + timeRemaining);
@@ -179,14 +181,57 @@ $(document).ready(function () {
             console.log(response);
             for (var i = 0; i < response.results.length; i++) {
                 gameObject.selectedCategory.listOfQuestions.push(response.results[i]);
+                console.log("Question: " + response.results[i].question);
+                console.log("Answers: " + response.results[i]);
             }
-            gameObject.areQuestionsLoaded = true;
+
+            displayNextQuestion(response.results[0].question);
+            displayQuestionAnswers(response.results[0]);
         });
     }
 
     function displayNextQuestion(question) {
-        ("#question").html(question);
+        console.log(question);
+        $("#question").html(question);
     }
+
+    function displayQuestionAnswers(question) {
+        var answers = [];
+        answers.push(question.correct_answer);
+        var elementDiv = $("<div>");
+        elementDiv.html(answers[0]);
+        $("#answers").append(elementDiv);
+
+        for (var i = 0; i < question.incorrect_answers.length; i++) {
+            answers.push(question.incorrect_answers[i]);
+            elementDiv = $("<div>");
+            elementDiv.html(answers[i + 1]);
+            $("#answers").append(elementDiv);
+        }
+        console.log("unshuffked : " + answers.toString());
+        answersArray = shuffle(answers);
+
+    }
+
+    function shuffle(array) {
+        var currentIndex = array.length, temporaryValue, randomIndex;
+      
+        // While there remain elements to shuffle...
+        while (0 !== currentIndex) {
+      
+          // Pick a remaining element...
+          randomIndex = Math.floor(Math.random() * currentIndex);
+          currentIndex -= 1;
+      
+          // And swap it with the current element.
+          temporaryValue = array[currentIndex];
+          array[currentIndex] = array[randomIndex];
+          array[randomIndex] = temporaryValue;
+        }
+      
+        console.log("shuffled: " + array.toString());
+        return array;
+      }
 
     // This function will execute once when the page is loaded
     getSessionToken();
@@ -196,13 +241,6 @@ $(document).ready(function () {
         timeRemaining = MAX_TIME;
         countDownTimer = setInterval(function(){ timer() }, 1000);
         generateQuestions();
-        for (var i = 0; i < gameObject.selectedCategory.listOfQuestions.length; i++) {
-            displayNextQuestion(gameObject.selectedCategory.listOfQuestions[i].question);
-            while (timeRemaining >= 0) {
-                // wait here
-            }
-        }
-
     });
 
     $("#select-category").click(function () {
@@ -212,10 +250,6 @@ $(document).ready(function () {
         gameObject.selectedCategory.id = selectedValue;
         gameObject.selectedCategory.name = selectedText;
         getNumberOfCategoryQuestions(selectedValue);
-        while (gameObject.areQuestionsLoaded == false) {
-            // wait here
-        }
-
     });
 
     $("#select-number-of-questions").click(function () {
