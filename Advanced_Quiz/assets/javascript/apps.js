@@ -13,8 +13,8 @@
 
 
 $(document).ready(function () {
-    var MAX_TIME_REMAINING = 10;
-    var MAX_WAIT_TIME_REMAINING = 3;
+    var MAX_TIME_REMAINING = 30; // seconds
+    var MAX_WAIT_TIME_REMAINING = 3; // seconds
 
     var timerCountDown = undefined;
     var timerWait = undefined;
@@ -146,6 +146,22 @@ $(document).ready(function () {
         $("#question").html("");
     }
 
+    function displayQuestionNumber(number, total) {
+        $("#question-number").html("Question " + number + " of " + total);
+    }
+
+    function clearQuestionNumber() {
+        $("#question-number").html("");
+    }
+
+    function displayCurrentCategory(category) {
+        $("#current-category").html("Category: " + category);
+    }
+
+    function clearCurrentCategory() {
+        $("#current-category").html("");
+    }
+
     function initializeGame() {
         hideStartGameButton();
         hideSetCategoryButton();
@@ -158,6 +174,13 @@ $(document).ready(function () {
     }
 
     function resetGame() {
+        // reset timers just in case
+        clearInterval(timerCountDown);
+        timeRemaining = MAX_TIME_REMAINING;
+
+        clearInterval(waitTimer);
+        waitTimeRemaining = MAX_WAIT_TIME_REMAINING;
+
         // initialize the game object
         gameObject.categoryid = 0;
         gameObject.categoryName = "";
@@ -173,6 +196,8 @@ $(document).ready(function () {
         clearTimeRemaining();
         clearResult();
         clearFinalResults();
+        clearQuestionNumber();
+        clearCurrentCategory();
     }
 
     function countDownTimer() {
@@ -223,6 +248,7 @@ $(document).ready(function () {
                 displayNextQuestion(gameObject.listOfQuestions[questionNumber].question);
                 displayAnswers(gameObject.listOfQuestions[questionNumber]);
 
+                timeRemaining = MAX_TIME_REMAINING;
                 timerCountDown = setInterval(function () {
                     countDownTimer()
                 }, 1000);
@@ -237,6 +263,7 @@ $(document).ready(function () {
                 clearCorrectAnswer();
                 clearTimeRemaining();
                 clearQuestion();
+                clearQuestionNumber();
                 displayResult("Game Over");
                 displayFinalResults(correctAnswerCnt, wrongAnswerCnt, unAnsweredCnt);
                 showRestartGameButton();
@@ -349,7 +376,7 @@ $(document).ready(function () {
     function getNumberOfCategoryQuestions(categoryId) {
         var response = undefined;
         $.ajax({
-            url: "https://opentdb.com/api_count.php?category=" + categoryId,
+            url: "https://opentdb.com/api_count.php?category=" + categoryId + "&token=" + gameObject.sessionToken,
             method: "GET"
         }).done(function (response) {
             showSetNumberOfQuestionsButton();
@@ -385,7 +412,11 @@ $(document).ready(function () {
         var response = undefined;
         var questionCount = gameObject.numberQuestionsSelected;
         var categoryId = gameObject.categoryId;
-        var queryURL = "https://opentdb.com/api.php?" + "amount=" + questionCount + "&category=" + categoryId + "&type=multiple";
+        var queryURL = "https://opentdb.com/api.php?" +
+            "amount=" + questionCount +
+            "&category=" + categoryId +
+            "&type=multiple" +
+            "&token=" + gameObject.sessionToken;
 
         console.log(queryURL);
         $.ajax({
@@ -405,6 +436,7 @@ $(document).ready(function () {
     function displayNextQuestion(question) {
         console.log(question);
         $("#question").html(question);
+        displayQuestionNumber(gameObject.currentQuestionNumber + 1, gameObject.numberQuestionsSelected);
     }
 
     function displayAnswers(answers) {
@@ -488,6 +520,8 @@ $(document).ready(function () {
         hideSetNumberOfQuestionsButton();
         removeQuestionCountSelection();
 
+        displayCurrentCategory(gameObject.categoryName);
+
         displayNextQuestion(gameObject.listOfQuestions[questionNumber].question);
         displayAnswers(gameObject.listOfQuestions[questionNumber]);
 
@@ -503,18 +537,28 @@ $(document).ready(function () {
         var selectedText = $("#categories").find("option:selected").text();
         var selectedValue = $("#categories").val();
         console.log("Selected Text: " + selectedText + " Value: " + selectedValue);
-        gameObject.categoryId = selectedValue;
-        gameObject.categoryName = selectedText;
-        getNumberOfCategoryQuestions(selectedValue);
+
+        if (selectedText.length !== 0) {
+            gameObject.categoryId = selectedValue;
+            gameObject.categoryName = selectedText;
+            getNumberOfCategoryQuestions(selectedValue);
+        } else {
+            console.log("empty category");
+        }
     });
 
     $("#set-number-of-questions").click(function () {
         var selectedText = $("#number-of-questions").find("option:selected").text();
         var selectedValue = $("#number-of-questions").val();
         console.log("Selected Text: " + selectedText + " Value: " + selectedValue);
-        gameObject.numberQuestionsSelected = selectedValue;
-        generateQuestions();
-        showStartGameButton();
+
+        if (selectedText.length !== 0) {
+            gameObject.numberQuestionsSelected = selectedValue;
+            generateQuestions();
+            showStartGameButton();
+        } else {
+            console.log("empty question count");
+        }
     });
 
     $(".check-answer").on("click", function () {
