@@ -21,25 +21,29 @@
 </head>
 
 <body>
-
-    <button type="button" class="btn btn-primary start">Start the Game</button>
     <div id="count-down-timer"></div>
 
     <select id="categories">
         <option value=""></option>
     </select>
-    <input type="button" id="select-category" value="Set the Category" />
+    <input type="button" id="set-category" class="btn btn-primary" value="Set the Category" />
 
     <select id="number-of-questions">
         <option value=""></option>
     </select>
-    <input type="button" id="select-number-of-questions" value="Set the Number of Questions" />
-
+    <input type="button" id="set-number-of-questions" class="btn btn-primary" value="Set the Number of Questions" />
+    <button type="button" id="start-game" class="btn btn-primary start">Start the Game</button>
     <div id="question"></div>
     <div id="answers"></div>
-    <button type="button" class="btn btn-primary check-answer">Check Answer</button>
+    <button type="button" id="check-answer" class="btn btn-primary check-answer">Check Answer</button>
     <div id="result"></div>
     <div id="correct-answer"></div>
+    <div id="final-results">
+        <div id="correct-answers"></div>
+        <div id="wrong-answers"></div>
+        <div id="unanswered"></div>
+    </div>
+    <button type="button" id="restart-game" class="btn btn-primary restart-game">Restart Game</button>
 </body>
 
 </html>

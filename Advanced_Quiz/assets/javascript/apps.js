@@ -20,32 +20,174 @@ $(document).ready(function () {
     var timerWait = undefined;
     var timeRemaining = MAX_TIME_REMAINING;
     var waitTimeRemaining = MAX_WAIT_TIME_REMAINING;
-    var listOfCategories = undefined;
+
     var gameObject = {
         sessionToken: "",
-        categoryId: 0,
-        categoryName: "",
+        listOfCategories: undefined, // list of categories obtained from https://opentdb.com/api_category.php
+        categoryId: 0, // selected category id
+        categoryName: "", // selected category name
         totalQuestions: 0, // total number of questions available for the category
         numberQuestionsSelected: 0, // the number of questions from the category selected by the user
         listOfQuestions: [], // list of questions with length equal to numberQuestionsSelected
         shuffledAnswerArray: [], // shuffled answer array for the current question
-        currentQuestionNumber: 0 // current question number from 0 to numberQuestionsSelected - 1
+        currentQuestionNumber: 0, // current question number from 0 to numberQuestionsSelected - 1
+        finalResults: {
+            correctAnswerCnt: 0,
+            wrongAnswerCnt: 0,
+            unAnsweredCnt: 0
+        }
     } // end var gameObject
 
-    var readyToContinue = false;
+    function hideStartGameButton() {
+        $("#start-game").hide();
+    }
+
+    function showStartGameButton() {
+        $("#start-game").show();
+    }
+
+    function hideSetCategoryButton() {
+        $("#set-category").hide();
+    }
+
+    function showSetCategoryButton() {
+        $("#set-category").show();
+    }
+
+    function hideSetNumberOfQuestionsButton() {
+        $("#set-number-of-questions").hide();
+    }
+
+    function showSetNumberOfQuestionsButton() {
+        $("#set-number-of-questions").show();
+    }
+
+    function hideCheckAnswerButton() {
+        $("#check-answer").hide();
+    }
+
+    function showCheckAnswerButton() {
+        $("#check-answer").show();
+    }
+
+    function hideRestartGameButton() {
+        $("#restart-game").hide();
+    }
+
+    function showRestartGameButton() {
+        $("#restart-game").show();
+    }
+
+    function hideCategories() {
+        $("#categories").hide();
+    }
+
+    function showCategories() {
+        $("#categories").show();
+    }
+
+    function hideNumberOfQuestions() {
+        $("#number-of-questions").hide();
+    }
+
+    function showNumberOfQuestions() {
+        $("#number-of-questions").show();
+    }
+
+    function removeCategorySelection() {
+        for (var i = 0; i < gameObject.listOfCategories.trivia_categories.length; i++) {
+            $("#category-" + gameObject.listOfCategories.trivia_categories[i].id).detach();
+        }
+    }
+
+    function removeQuestionCountSelection() {
+        for (var i = 1; i <= gameObject.totalQuestions; i++) {
+            $("#count-" + i).detach();
+        }
+    }
+
+    function displayTimeRemaining(time) {
+        $("#count-down-timer").html("Time Remaining = " + time);
+    }
+
+    function clearTimeRemaining() {
+        $("#count-down-timer").html("");
+    }
+
+    function displayCorrectAnswer(answer) {
+        $("#correct-answer").html("The correct answer is: " + answer);
+    }
+
+    function clearCorrectAnswer() {
+        $("#correct-answer").html("");
+    }
+
+    function displayResult(result) {
+        $("#result").html(result);
+    }
+
+    function clearResult() {
+        $("#result").html("");
+    }
+
+    function displayFinalResults(correct, wrong, none) {
+        $("#correct-answers").html("Number of Correct Answers: " + correct);
+        $("#wrong-answers").html("Number of Wrong Answers: " + wrong);
+        $("#unanswered").html("Number of Unanswered: " + none);
+    }
+
+    function clearFinalResults() {
+        $("#correct-answers").html("");
+        $("#wrong-answers").html("");
+        $("#unanswered").html("");
+    }
+
+    function clearQuestion() {
+        $("#question").html("");
+    }
+
+    function initializeGame() {
+        hideStartGameButton();
+        hideSetCategoryButton();
+        hideCategories();
+        hideSetNumberOfQuestionsButton();
+        hideNumberOfQuestions();
+        hideCheckAnswerButton();
+        hideCheckAnswerButton();
+        hideRestartGameButton();
+    }
+
+    function resetGame() {
+        // initialize the game object
+        gameObject.categoryid = 0;
+        gameObject.categoryName = "";
+        gameObject.totalQuestions = 0;
+        gameObject.numberQuestionsSelected = 0;
+        gameObject.listOfQuestions = [];
+        gameObject.shuffledAnswerArray = [];
+        gameObject.currentQuestionNumber = 0;
+        gameObject.finalResults.correctAnswerCnt = 0;
+        gameObject.finalResults.wrongAnswerCnt = 0;
+        gameObject.finalResults.unAnsweredCnt = 0;
+        initializeGame();
+        clearTimeRemaining();
+        clearResult();
+        clearFinalResults();
+    }
 
     function countDownTimer() {
-        $("#count-down-timer").html("Time Remaining = " + timeRemaining);
+        displayTimeRemaining(timeRemaining);
         if (timeRemaining < 0) {
-            $("#count-down-timer").html("Time is Up");
+            displayTimeRemaining("Time is Up!");
             clearInterval(timerCountDown);
             timeRemaining = MAX_TIME_REMAINING;
+
+            gameObject.finalResults.unAnsweredCnt++;
 
             var questionNumber = gameObject.currentQuestionNumber;
             var correctAnswer = gameObject.listOfQuestions[questionNumber].correct_answer;
 
-            // the correct answer is
-            $("#correct-answer").html("The correct answer is: " + correctAnswer);
+            displayCorrectAnswer(correctAnswer);
 
             timerWait = setInterval(function () {
                 waitTimer()
@@ -56,26 +198,27 @@ $(document).ready(function () {
     }
 
     function waitTimer() {
+        hideCheckAnswerButton();
         if (waitTimeRemaining < 0) {
             clearInterval(timerWait);
             waitTimeRemaining = MAX_WAIT_TIME_REMAINING;
 
             // reset some page elements
-            $("#result").html("");
-            $("#correct-answer").html("");
+            clearResult();
+            clearCorrectAnswer();
 
-            for(var i = 0; i < gameObject.shuffledAnswerArray.length; i++) {
+            for (var i = 0; i < gameObject.shuffledAnswerArray.length; i++) {
                 $(".form-check").detach();
             }
             shuffledAnswerArray = []; // reset the array
-            
+
             var questionCount = gameObject.numberQuestionsSelected;
             var questionNumber = gameObject.currentQuestionNumber;
 
             console.log("questionNumber: " + questionNumber);
             console.log("questionCount: " + questionCount);
             if (questionNumber < (questionCount - 1)) {
-                gameObject.currentQuestionNumber ++;
+                gameObject.currentQuestionNumber++;
                 questionNumber = gameObject.currentQuestionNumber;
                 displayNextQuestion(gameObject.listOfQuestions[questionNumber].question);
                 displayAnswers(gameObject.listOfQuestions[questionNumber]);
@@ -83,8 +226,20 @@ $(document).ready(function () {
                 timerCountDown = setInterval(function () {
                     countDownTimer()
                 }, 1000);
+
+                showCheckAnswerButton();
             } else {
-                $("#result").html("Game Over");
+                var correctAnswerCnt = gameObject.finalResults.correctAnswerCnt;
+                var wrongAnswerCnt = gameObject.finalResults.wrongAnswerCnt;
+                var unAnsweredCnt = gameObject.finalResults.unAnsweredCnt;
+                // reset some page elements
+                clearResult();
+                clearCorrectAnswer();
+                clearTimeRemaining();
+                clearQuestion();
+                displayResult("Game Over");
+                displayFinalResults(correctAnswerCnt, wrongAnswerCnt, unAnsweredCnt);
+                showRestartGameButton();
             }
         } else {
             waitTimeRemaining--;
@@ -130,6 +285,17 @@ $(document).ready(function () {
         })
     }
 
+    function displayListOfCategories() {
+        showCategories();
+        showSetCategoryButton();
+        for (var i = 0; i < gameObject.listOfCategories.trivia_categories.length; i++) {
+            var category = $("<option>");
+            category.attr("id", "category-" + gameObject.listOfCategories.trivia_categories[i].id);
+            category.attr("value", gameObject.listOfCategories.trivia_categories[i].id);
+            category.text(gameObject.listOfCategories.trivia_categories[i].name);
+            $("#categories").append(category);
+        }
+    }
     // to return a list of categories use: https://opentdb.com/api_category.php
     //
     // The list of categories is return as an object with the following content:
@@ -141,30 +307,29 @@ $(document).ready(function () {
     //    }]
     // }
     function getListOfCategories() {
+        var categories = undefined;
+
         $.ajax({
             url: "https://opentdb.com/api_category.php",
             method: "GET"
-        }).done(function (listOfCategories) {
-            for (var i = 0; i < listOfCategories.trivia_categories.length; i++) {
-                console.log("id: " + listOfCategories.trivia_categories[i].id);
-                console.log("name: " + listOfCategories.trivia_categories[i].name);
-
-                // create an <option>
-                var category = $("<option>");
-                category.attr("value", listOfCategories.trivia_categories[i].id);
-                category.text(listOfCategories.trivia_categories[i].name);
-                $("#categories").append(category);
+        }).done(function (categories) {
+            gameObject.listOfCategories = categories;
+            for (var i = 0; i < gameObject.listOfCategories.trivia_categories.length; i++) {
+                console.log("id: " + gameObject.listOfCategories.trivia_categories[i].id);
+                console.log("name: " + gameObject.listOfCategories.trivia_categories[i].name);
             }
+            displayListOfCategories();
         });
     }
 
     function populateQuestionCount() {
         for (var i = 1; i <= gameObject.totalQuestions; i++) {
             // create an <option>
-            var number = $("<option>");
-            number.attr("value", i);
-            number.text(i);
-            $("#number-of-questions").append(number);
+            var count = $("<option>");
+            count.attr("id", "count-" + i);
+            count.attr("value", i);
+            count.text(i);
+            $("#number-of-questions").append(count);
         }
     }
 
@@ -187,6 +352,8 @@ $(document).ready(function () {
             url: "https://opentdb.com/api_count.php?category=" + categoryId,
             method: "GET"
         }).done(function (response) {
+            showSetNumberOfQuestionsButton();
+            showNumberOfQuestions();
             console.log(response);
             console.log("response: " + response.category_question_count.total_question_count);
             console.log("totalCategoryQuestions: " + response.category_question_count.total_question_count);
@@ -303,21 +470,36 @@ $(document).ready(function () {
 
 
     // This function will execute once when the page is loaded
+    initializeGame();
     getSessionToken();
     getListOfCategories();
 
     $(".start").on("click", function () {
         var questionNumber = gameObject.currentQuestionNumber;
         console.log("questionNumber: " + questionNumber);
+
+        hideStartGameButton();
+
+        hideCategories();
+        hideSetCategoryButton();
+        removeCategorySelection();
+
+        hideNumberOfQuestions();
+        hideSetNumberOfQuestionsButton();
+        removeQuestionCountSelection();
+
         displayNextQuestion(gameObject.listOfQuestions[questionNumber].question);
         displayAnswers(gameObject.listOfQuestions[questionNumber]);
 
         timerCountDown = setInterval(function () {
             countDownTimer()
         }, 1000);
+
+        showCheckAnswerButton();
     });
 
-    $("#select-category").click(function () {
+    $("#set-category").click(function () {
+        console.log("select category");
         var selectedText = $("#categories").find("option:selected").text();
         var selectedValue = $("#categories").val();
         console.log("Selected Text: " + selectedText + " Value: " + selectedValue);
@@ -326,12 +508,13 @@ $(document).ready(function () {
         getNumberOfCategoryQuestions(selectedValue);
     });
 
-    $("#select-number-of-questions").click(function () {
+    $("#set-number-of-questions").click(function () {
         var selectedText = $("#number-of-questions").find("option:selected").text();
         var selectedValue = $("#number-of-questions").val();
         console.log("Selected Text: " + selectedText + " Value: " + selectedValue);
         gameObject.numberQuestionsSelected = selectedValue;
         generateQuestions();
+        showStartGameButton();
     });
 
     $(".check-answer").on("click", function () {
@@ -339,6 +522,8 @@ $(document).ready(function () {
         var questionNumber = gameObject.currentQuestionNumber;
 
         clearInterval(timerCountDown); // stop the count down timer
+
+        hideCheckAnswerButton();
 
         // check if the user got the right or wrong answer
         for (var i = 0; i < gameObject.shuffledAnswerArray.length; i++) {
@@ -349,14 +534,12 @@ $(document).ready(function () {
 
                 // is this the correct answer
                 if (userAnswer === correctAnswer) {
-                    // correct answer
-                    $("#result").html("Correct Answer");
+                    displayResult("Correct Answer");
+                    gameObject.finalResults.correctAnswerCnt++;
                 } else {
-                    // wrong answer
-                    $("#result").html("Wrong Answer");
-
-                    // the correct answer is
-                    $("#correct-answer").html("The correct answer is: " + correctAnswer);
+                    displayResult("Wrong Answer");
+                    gameObject.finalResults.wrongAnswerCnt++;
+                    displayCorrectAnswer(correctAnswer);
                 }
                 break;
             }
@@ -364,6 +547,11 @@ $(document).ready(function () {
         timerWait = setInterval(function () {
             waitTimer()
         }, 1000);
+    });
+
+    $(".restart-game").on("click", function () {
+        resetGame();
+        displayListOfCategories();
     });
 
 });
