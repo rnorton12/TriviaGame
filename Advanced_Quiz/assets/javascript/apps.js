@@ -7,20 +7,23 @@
 // at the end, show correct answer count, wrong answer count and unaswered count
 // start over does not reload page, it resets the game
 
-
-
-
-
-
 $(document).ready(function () {
-    var MAX_TIME_REMAINING = 30; // seconds
-    var MAX_WAIT_TIME_REMAINING = 3; // seconds
+    var MAX_TIME_REMAINING = 40; // seconds
+    var MAX_WAIT_TIME = 3; // seconds
+
+    var RESULT_CORRECT_ANSWER = "CORRECT ANSWER";
+    var RESULT_WRONG_ANSWER = "WRONG ANSWER";
+    var RESULT_GAME_OVER = "GAME OVER";
+    
+    var TIME_IS_UP_TEXT = "TIME IS UP!";
 
     var timerCountDown = undefined;
     var timerWait = undefined;
     var timeRemaining = MAX_TIME_REMAINING;
-    var waitTimeRemaining = MAX_WAIT_TIME_REMAINING;
+    var waitTimeRemaining = MAX_WAIT_TIME;
 
+    // the game object will store relevant information for the categories,
+    // category questions and question answers.
     var gameObject = {
         sessionToken: "",
         listOfCategories: undefined, // list of categories obtained from https://opentdb.com/api_category.php
@@ -31,13 +34,14 @@ $(document).ready(function () {
         listOfQuestions: [], // list of questions with length equal to numberQuestionsSelected
         shuffledAnswerArray: [], // shuffled answer array for the current question
         currentQuestionNumber: 0, // current question number from 0 to numberQuestionsSelected - 1
-        finalResults: {
+        finalResults: { // final results shown at end of game
             correctAnswerCnt: 0,
             wrongAnswerCnt: 0,
             unAnsweredCnt: 0
         }
     } // end var gameObject
 
+    // hide/show Start Game Button
     function hideStartGameButton() {
         $("#start-game").hide();
     }
@@ -46,6 +50,7 @@ $(document).ready(function () {
         $("#start-game").show();
     }
 
+    // hide/show Set Category Button
     function hideSetCategoryButton() {
         $("#set-category").hide();
     }
@@ -54,6 +59,7 @@ $(document).ready(function () {
         $("#set-category").show();
     }
 
+    // hide/show Set Number of Questions Button
     function hideSetNumberOfQuestionsButton() {
         $("#set-number-of-questions").hide();
     }
@@ -62,6 +68,7 @@ $(document).ready(function () {
         $("#set-number-of-questions").show();
     }
 
+    // hide/show Check Answer Button
     function hideCheckAnswerButton() {
         $("#check-answer").hide();
     }
@@ -70,6 +77,7 @@ $(document).ready(function () {
         $("#check-answer").show();
     }
 
+    // hide/show Restert Game Button
     function hideRestartGameButton() {
         $("#restart-game").hide();
     }
@@ -78,6 +86,7 @@ $(document).ready(function () {
         $("#restart-game").show();
     }
 
+    // hide/show Categories selection
     function hideCategories() {
         $("#categories").hide();
     }
@@ -86,6 +95,7 @@ $(document).ready(function () {
         $("#categories").show();
     }
 
+    // hide/show Number of Question selection
     function hideNumberOfQuestions() {
         $("#number-of-questions").hide();
     }
@@ -94,74 +104,173 @@ $(document).ready(function () {
         $("#number-of-questions").show();
     }
 
+    // remove Categories from the selection list
     function removeCategorySelection() {
         for (var i = 0; i < gameObject.listOfCategories.trivia_categories.length; i++) {
             $("#category-" + gameObject.listOfCategories.trivia_categories[i].id).detach();
         }
     }
 
+    // remove Question Count values from the selection list
     function removeQuestionCountSelection() {
         for (var i = 1; i <= gameObject.totalQuestions; i++) {
             $("#count-" + i).detach();
         }
     }
 
+    // Timer color will start out green (badge-success).
+    // When time remaining reaches 50% then the timer color will become yellow (badge-warning).
+    // when time remaining reaches MIN_TIME_REMAING seconds left then the timer color will become red (badge-danger)
     function displayTimeRemaining(time) {
-        $("#count-down-timer").html("Time Remaining = " + time);
+        var MIN_TIME_REMAING = 5; // seconds
+
+        if (time === TIME_IS_UP_TEXT) {
+            $("#count-down-timer").html(TIME_IS_UP_TEXT);
+        } else {
+            // set it to green (badge-success), if not already set
+            if ((time <= MAX_TIME_REMAINING) && (time > MAX_TIME_REMAINING / 2)) {
+                if ($("#count-down-timer").hasClass("badge-success") === false) {
+                    if ($("#count-down-timer").hasClass("badge-danger")) {
+                        $("#count-down-timer").removeClass("badge-danger");
+                    } else if ($("#count-down-timer").hasClass("badge-warning")) {
+                        $("#count-down-timer").removeClass("badge-warning");
+                    }
+
+                    // set it to green (badge-success)
+                    $("#count-down-timer").addClass("badge-success");
+                }
+            } else if ((time <= MAX_TIME_REMAINING / 2) && (time > MIN_TIME_REMAING)) {
+                // set it to yellow (badge-warning), if not already set
+                if ($("#count-down-timer").hasClass("badge-warning") === false) {
+                    if ($("#count-down-timer").hasClass("badge-danger")) {
+                        $("#count-down-timer").removeClass("badge-danger");
+                    } else if ($("#count-down-timer").hasClass("badge-success")) {
+                        $("#count-down-timer").removeClass("badge-success");
+                    }
+
+                    // set it to yellow (badge-warning)
+                    $("#count-down-timer").addClass("badge-warning");
+                }
+            } else { // MIN_TIME_REMAING or less
+                // set it to red (badge-danger), if not already set
+                if ($("#count-down-timer").hasClass("badge-danger") === false) {
+                    if ($("#count-down-timer").hasClass("badge-warning")) {
+                        $("#count-down-timer").removeClass("badge-warning");
+                    } else if ($("#count-down-timer").hasClass("badge-success")) {
+                        $("#count-down-timer").removeClass("badge-success");
+                    }
+
+                    // set it to red (badge-danger)
+                    $("#count-down-timer").addClass("badge-danger");
+                }
+            }
+
+            // update time remaining display
+            $("#count-down-timer").html("Time Remaining = " + time + " sec");
+        }
     }
 
+    // clear the htnl for the element
     function clearTimeRemaining() {
         $("#count-down-timer").html("");
     }
 
+    // show the correct answer for the current question
     function displayCorrectAnswer(answer) {
         $("#correct-answer").html("The correct answer is: " + answer);
     }
 
+    // clear the html for the element 
     function clearCorrectAnswer() {
         $("#correct-answer").html("");
     }
 
+    // if result is equal to RESULT_CORRECT_ANSWER then make it green (badge-success).
+    // if result is equal to RESULT_WRONG_ANSWER then make it red (badge-danger).
+    // if result is equal to RESULT_GAME_OVER then make it yellow (badge-warning).
     function displayResult(result) {
+
+        if (result === RESULT_CORRECT_ANSWER) {
+            // set it to green (badge-success), if not already set
+            if ($("#result").hasClass("badge-success") === false) {
+                if ($("#result").hasClass("badge-danger")) {
+                    $("#result").removeClass("badge-danger");
+                } else if ($("#result").hasClass("badge-warning")) {
+                    $("#result").removeClass("badge-warning");
+                }
+                $("#result").addClass("badge-success");
+            }
+        } else if (result === RESULT_WRONG_ANSWER) {
+            // set it red (badge-danger), if not alreadt set
+            if ($("#result").hasClass("badge-danger") === false) {
+                if ($("#result").hasClass("badge-success")) {
+                    $("#result").removeClass("badge-success");
+                } else if ($("#result").hasClass("badge-warning")) {
+                    $("#result").removeClass("badge-warning");
+                }
+                $("#result").addClass("badge-danger");
+            }
+        } else { // game over
+            // set it yellow (badge-warning), if not alreadt set
+            if ($("#result").hasClass("badge-warning") === false) {
+                if ($("#result").hasClass("badge-success")) {
+                    $("#result").removeClass("badge-success");
+                } else if ($("#result").hasClass("badge-danger")) {
+                    $("#result").removeClass("badge-danger");
+                }
+                $("#result").addClass("badge-warning");
+            }
+        }
+        // update the result display
         $("#result").html(result);
     }
 
+    // clear html for the element
     function clearResult() {
         $("#result").html("");
     }
 
+    // display the final results
     function displayFinalResults(correct, wrong, none) {
         $("#correct-answers").html("Number of Correct Answers: " + correct);
         $("#wrong-answers").html("Number of Wrong Answers: " + wrong);
         $("#unanswered").html("Number of Unanswered: " + none);
     }
 
+    // clear the html for thesse elements
     function clearFinalResults() {
         $("#correct-answers").html("");
         $("#wrong-answers").html("");
         $("#unanswered").html("");
     }
 
+    // clear the html for the element
     function clearQuestion() {
         $("#question").html("");
     }
 
+    // display question number like this: 1 of X,
+    // where X is the total number of questions.
     function displayQuestionNumber(number, total) {
         $("#question-number").html("Question " + number + " of " + total);
     }
 
+    // clear the html for the element
     function clearQuestionNumber() {
         $("#question-number").html("");
     }
 
+    // display current category
     function displayCurrentCategory(category) {
         $("#current-category").html("Category: " + category);
     }
 
+    // clear the html for the element
     function clearCurrentCategory() {
         $("#current-category").html("");
     }
 
+    // hides the elements on the page
     function initializeGame() {
         hideStartGameButton();
         hideSetCategoryButton();
@@ -173,13 +282,14 @@ $(document).ready(function () {
         hideRestartGameButton();
     }
 
+    // restores the game to initial state as if the page was reloaded
     function resetGame() {
-        // reset timers just in case
+        // reset timers
         clearInterval(timerCountDown);
         timeRemaining = MAX_TIME_REMAINING;
 
         clearInterval(waitTimer);
-        waitTimeRemaining = MAX_WAIT_TIME_REMAINING;
+        waitTimeRemaining = MAX_WAIT_TIME;
 
         // initialize the game object
         gameObject.categoryid = 0;
@@ -192,7 +302,10 @@ $(document).ready(function () {
         gameObject.finalResults.correctAnswerCnt = 0;
         gameObject.finalResults.wrongAnswerCnt = 0;
         gameObject.finalResults.unAnsweredCnt = 0;
+
         initializeGame();
+
+        // clear html for these elements
         clearTimeRemaining();
         clearResult();
         clearFinalResults();
@@ -200,20 +313,36 @@ $(document).ready(function () {
         clearCurrentCategory();
     }
 
+    // the count down timer is the time the user has to answer the question
+    // if the timer expires, without the user providing an answer, the correct answer is
+    // display.  If the user provides an answer before the timer expires, the timer
+    // is stopped and then restarted for the next question
     function countDownTimer() {
         displayTimeRemaining(timeRemaining);
         if (timeRemaining < 0) {
-            displayTimeRemaining("Time is Up!");
+            // cancel the count down timer
             clearInterval(timerCountDown);
+
+            // reset time remaining for next time
             timeRemaining = MAX_TIME_REMAINING;
 
+            // display time is up message
+            displayTimeRemaining(TIME_IS_UP_TEXT);
+        
+            // increment the unanswered question count
             gameObject.finalResults.unAnsweredCnt++;
 
+            // hide the check answer button
+            hideCheckAnswerButton();
+
+            // retrieve the correct answer
             var questionNumber = gameObject.currentQuestionNumber;
             var correctAnswer = gameObject.listOfQuestions[questionNumber].correct_answer;
 
+            // display the correct answer
             displayCorrectAnswer(correctAnswer);
 
+            // start the wait timer for the next question
             timerWait = setInterval(function () {
                 waitTimer()
             }, 1000);
@@ -222,32 +351,42 @@ $(document).ready(function () {
         }
     }
 
+    // the wait timer provides a small delay in between questions
     function waitTimer() {
-        hideCheckAnswerButton();
+        
         if (waitTimeRemaining < 0) {
+            // stop the time timer and reset to max timer for next use
             clearInterval(timerWait);
-            waitTimeRemaining = MAX_WAIT_TIME_REMAINING;
+            waitTimeRemaining = MAX_WAIT_TIME;
 
-            // reset some page elements
+            // clear html for these elements
             clearResult();
             clearCorrectAnswer();
 
-            for (var i = 0; i < gameObject.shuffledAnswerArray.length; i++) {
-                $(".form-check").detach();
-            }
-            shuffledAnswerArray = []; // reset the array
+            // remove (detach) the answer elements
+            //           for (var i = 0; i < gameObject.shuffledAnswerArray.length; i++) {
+            //                $(".form-check").detach();
+            $(".custom-radio").detach();
+            //           }
 
+            // reset the array for the next question's answers
+            shuffledAnswerArray = [];
+
+            // get the number of questions selected for the game
             var questionCount = gameObject.numberQuestionsSelected;
+
+            // get the current question number
             var questionNumber = gameObject.currentQuestionNumber;
 
-            console.log("questionNumber: " + questionNumber);
-            console.log("questionCount: " + questionCount);
+            // if there are more questions remaining
             if (questionNumber < (questionCount - 1)) {
+                // display the next question and it's answers
                 gameObject.currentQuestionNumber++;
                 questionNumber = gameObject.currentQuestionNumber;
                 displayNextQuestion(gameObject.listOfQuestions[questionNumber].question);
                 displayAnswers(gameObject.listOfQuestions[questionNumber]);
 
+                // restart the count down for this question
                 timeRemaining = MAX_TIME_REMAINING;
                 timerCountDown = setInterval(function () {
                     countDownTimer()
@@ -255,17 +394,27 @@ $(document).ready(function () {
 
                 showCheckAnswerButton();
             } else {
+                // all questions have been asked, the game is over
+                // get the final results 
                 var correctAnswerCnt = gameObject.finalResults.correctAnswerCnt;
                 var wrongAnswerCnt = gameObject.finalResults.wrongAnswerCnt;
                 var unAnsweredCnt = gameObject.finalResults.unAnsweredCnt;
-                // reset some page elements
+
+                // clear the html for these elements
+                clearCurrentCategory();
                 clearResult();
                 clearCorrectAnswer();
                 clearTimeRemaining();
                 clearQuestion();
                 clearQuestionNumber();
-                displayResult("Game Over");
+
+                // display that the game is over
+                displayResult(RESULT_GAME_OVER);
+
+                // display the final results
                 displayFinalResults(correctAnswerCnt, wrongAnswerCnt, unAnsweredCnt);
+
+                // allow the user to restart the game
                 showRestartGameButton();
             }
         } else {
@@ -274,11 +423,11 @@ $(document).ready(function () {
     }
 
     // I'm using the online trivia database at https://opentdb.com to automatically generate
-    // trivia questions. to start need to generate a Session Token.  Session Tokens are unique
+    // trivia questions. To start, need to generate a Session Token.  Session Tokens are unique
     // keys that will help keep track of the questions the API has already retrieved. By appending
-    // a Session Token to a API Call, the API will never give you the same question twice. Over the
-    // lifespan of a Session Token, there will eventually reach a point where you have exhausted all 
-    // the possible questions in the database. At this point, the API will respond with the appropriate
+    // a Session Token to an API Call, the API will never give the same question twice. Over the
+    // lifespan of a Session Token, there will eventually reach a point where all possible questions 
+    // in the database have been exhausted. At this point, the API will respond with the appropriate
     // "Response Code". From here, you can either "Reset" the Token, which will wipe all past memory, 
     // or you can ask for a new one. Session Tokens will be deleted after 6 hours of inactivity.
     //
@@ -305,16 +454,24 @@ $(document).ready(function () {
             url: "https://opentdb.com/api_token.php?command=request",
             method: "GET"
         }).done(function (response) {
-            console.log("response_code: " + response.response_code);
-            console.log("response_message: " + response.response_message);
-            console.log("token: " + response.token);
-            gameObject.sessionToken = response.token;
+            if (response.response_code === 0) {
+                console.log("response_code: " + response.response_code);
+                console.log("response_message: " + response.response_message);
+                console.log("token: " + response.token);
+                gameObject.sessionToken = response.token;
+
+                getListOfCategories();
+            } else {
+                alert(response.response_message);
+                alert("The page will be reloaded.");
+                location.reload();
+            }
         })
     }
 
+    // display a list of categories for the user to choose from
     function displayListOfCategories() {
         showCategories();
-        showSetCategoryButton();
         for (var i = 0; i < gameObject.listOfCategories.trivia_categories.length; i++) {
             var category = $("<option>");
             category.attr("id", "category-" + gameObject.listOfCategories.trivia_categories[i].id);
@@ -322,10 +479,12 @@ $(document).ready(function () {
             category.text(gameObject.listOfCategories.trivia_categories[i].name);
             $("#categories").append(category);
         }
+        showSetCategoryButton();
     }
+
     // to return a list of categories use: https://opentdb.com/api_category.php
     //
-    // The list of categories is return as an object with the following content:
+    // The list of categories is returned as an object with the following content:
     // {
     //    "trivia_categories": [
     //    {
@@ -349,6 +508,9 @@ $(document).ready(function () {
         });
     }
 
+    // display a question count list to allow the user to select how many
+    // questions they want.  The list is populate from 1 to total question
+    // count for the category.
     function populateQuestionCount() {
         for (var i = 1; i <= gameObject.totalQuestions; i++) {
             // create an <option>
@@ -360,7 +522,7 @@ $(document).ready(function () {
         }
     }
 
-
+　
     // to get the number of questions in a category use: https://opentdb.com/api_count.php?category=CATEGORY_ID_HERE
     //
     // The response returned as an object with the following content:
@@ -379,7 +541,6 @@ $(document).ready(function () {
             url: "https://opentdb.com/api_count.php?category=" + categoryId + "&token=" + gameObject.sessionToken,
             method: "GET"
         }).done(function (response) {
-            showSetNumberOfQuestionsButton();
             showNumberOfQuestions();
             console.log(response);
             console.log("response: " + response.category_question_count.total_question_count);
@@ -393,21 +554,21 @@ $(document).ready(function () {
     //
     // The response returned is an object with the following content:
     /*  {
-         "response_code": 0,
-         "results": [
-         {
-             "category": "Entertainment: Film",
-             "type": "multiple",
-             "difficulty": "hard",
-             "question": "What was the last Marx Brothers film to feature Zeppo?",
-             "correct_answer": "Duck Soup",
-             "incorrect_answers": [
-             "A Night at the Opera",
-             "A Day at the Races",
-             "Monkey Business"]
-         }
-         ]
-     } */
+    "response_code": 0,
+    "results": [
+    {
+    "category": "Entertainment: Film",
+    "type": "multiple",
+    "difficulty": "hard",
+    "question": "What was the last Marx Brothers film to feature Zeppo?",
+    "correct_answer": "Duck Soup",
+    "incorrect_answers": [
+    "A Night at the Opera",
+    "A Day at the Races",
+    "Monkey Business"]
+    }
+    ]
+    } */
     function generateQuestions() {
         var response = undefined;
         var questionCount = gameObject.numberQuestionsSelected;
@@ -424,61 +585,84 @@ $(document).ready(function () {
             method: "GET"
         }).done(function (response) {
             console.log(response);
-            for (var i = 0; i < response.results.length; i++) {
-                gameObject.listOfQuestions.push(response.results[i]);
-                console.log("question: " + gameObject.listOfQuestions[i].question);
-                console.log("correct answer: " + gameObject.listOfQuestions[i].correct_answer);
-                console.log("incorrect answers: " + gameObject.listOfQuestions[i].incorrect_answers.toString());
+            if (response.response_code === 0) {
+                for (var i = 0; i < response.results.length; i++) {
+                    gameObject.listOfQuestions.push(response.results[i]);
+                    console.log("question: " + gameObject.listOfQuestions[i].question);
+                    console.log("correct answer: " + gameObject.listOfQuestions[i].correct_answer);
+                    console.log("incorrect answers: " + gameObject.listOfQuestions[i].incorrect_answers.toString());
+                }
+            } else {
+                alert("Something went wrong getting the questions from the database.");
+                alert("The page will be reloaded.");
+                location.reload();
             }
         });
     }
 
+    // display the next question to the user.
     function displayNextQuestion(question) {
         console.log(question);
         $("#question").html(question);
         displayQuestionNumber(gameObject.currentQuestionNumber + 1, gameObject.numberQuestionsSelected);
     }
 
+    // display correct and wrong answers for the current question
     function displayAnswers(answers) {
+        // The response returned from the server contained the wrong answers in an array.
+        // The correct answer is not part of this array.
+        // Here I will create an array that contains the correct and wrong answers
         var answerArray = [];
+
+        // push the correct answer on to the array
         answerArray.push(answers.correct_answer);
 
+        // push each wrong answer on to the array
         for (var i = 0; i < answers.incorrect_answers.length; i++) {
             answerArray.push(answers.incorrect_answers[i]);
         }
-        console.log("unshuffled : " + answerArray.toString());
-        gameObject.shuffledAnswerArray = shuffle(answerArray);
-        console.log("shuffled: " + gameObject.shuffledAnswerArray.toString());
 
+        // now shuffle the array so that the correct answer is not always the first
+        // element of the array
+        gameObject.shuffledAnswerArray = shuffle(answerArray);
+
+        // display the multiple choice answers
         for (var i = 0; i < gameObject.shuffledAnswerArray.length; i++) {
-            // <div class="form-check form-check-inline">
-            // <label class="form-check-label">
-            // <input class="form-check-input" type="radio" name="inlineRadioOptions" id="answer-1" value="option-1">text
+            // The following elements will be created similar as shown:
+            // <label class="custom-control custom-radio">
+            // <input id="radio1" name="radio" type="radio" class="custom-control-input">
+            // <span class="custom-control-indicator"></span>
+            // <span class="custom-control-description">Toggle this custom radio</span>
             // </label>
-            // </div>
-            var elementDiv = $("<div>");
-            elementDiv.addClass("form-check form-check-inline");
-            elementDiv.attr("id", "form-check-" + (i + 1));
 
             var elementLabel = $("<label>");
-            elementLabel.addClass("form-check-label");
-            elementLabel.attr("id", "form-check-label-" + (i + 1));
+            elementLabel.addClass("custom-control custom-radio");
+            elementLabel.attr("Id", "custom-radio-" + (i + 1));
 
-            var elementInput = '<input class="form-check-input" type="radio" name="inlineRadioOptions"';
+            var elementInput = '<input name="radio" type="radio" class="custom-control-input"';
             elementInput += " id=" + "answer-" + (i + 1);
             elementInput += " value=" + "option-" + (i + 1) + ">";
-            elementInput += gameObject.shuffledAnswerArray[i];
 
-            $("#answers").append(elementDiv);
-            $("#form-check-" + (i + 1)).append(elementLabel);
-            $("#form-check-label-" + (i + 1)).append(elementInput);
+            var elementSpan1 = $("<span>");
+            elementSpan1.addClass("custom-control-indicator");
 
+            var elementSpan2 = $("<span>");
+            elementSpan2.addClass("custom-control-description");
+            elementSpan2.html(gameObject.shuffledAnswerArray[i]);
+
+            $("#answers").append(elementLabel);
+            $("#custom-radio-" + (i + 1)).append(elementInput);
+            $("#custom-radio-" + (i + 1)).append(elementSpan1);
+            $("#custom-radio-" + (i + 1)).append(elementSpan2);
+
+            // set the "checked" property to true for the first answer
             if (i === 0) {
                 $("#answer-" + (i + 1)).prop("checked", true);
             }
         }
     }
 
+    // shuffle the array to mix up the contents
     function shuffle(array) {
         var currentIndex = array.length,
             temporaryValue, randomIndex;
@@ -495,36 +679,34 @@ $(document).ready(function () {
             array[currentIndex] = array[randomIndex];
             array[randomIndex] = temporaryValue;
         }
-
-        console.log("shuffled: " + array.toString());
         return array;
     }
 
-
-    // This function will execute once when the page is loaded
+　
+    // These functions will execute once when the page is loaded
     initializeGame();
     getSessionToken();
-    getListOfCategories();
 
+    // handler for the Start Game button
     $(".start").on("click", function () {
+
+        // get the question number.  Should be 0 at start of game
         var questionNumber = gameObject.currentQuestionNumber;
-        console.log("questionNumber: " + questionNumber);
 
+        // setup the page to hide unnecessary elements
         hideStartGameButton();
-
         hideCategories();
         hideSetCategoryButton();
         removeCategorySelection();
-
         hideNumberOfQuestions();
         hideSetNumberOfQuestionsButton();
         removeQuestionCountSelection();
 
         displayCurrentCategory(gameObject.categoryName);
-
         displayNextQuestion(gameObject.listOfQuestions[questionNumber].question);
         displayAnswers(gameObject.listOfQuestions[questionNumber]);
 
+        // start the count down timer for the user to answer the question
         timerCountDown = setInterval(function () {
             countDownTimer()
         }, 1000);
@@ -532,21 +714,33 @@ $(document).ready(function () {
         showCheckAnswerButton();
     });
 
+    // handler for the Set Category button
     $("#set-category").click(function () {
-        console.log("select category");
-        var selectedText = $("#categories").find("option:selected").text();
-        var selectedValue = $("#categories").val();
-        console.log("Selected Text: " + selectedText + " Value: " + selectedValue);
 
+        // get the text for the selected category
+        var selectedText = $("#categories").find("option:selected").text();
+
+        // get the value for the selected category
+        var selectedValue = $("#categories").val();
+
+        // the first item is the list of categories is blank
         if (selectedText.length !== 0) {
+            // assign the category value to the category Id
             gameObject.categoryId = selectedValue;
+
+            // assign the category text to the category name
             gameObject.categoryName = selectedText;
-            getNumberOfCategoryQuestions(selectedValue);
+
+            // get the number of questions available for this category Id
+            getNumberOfCategoryQuestions(gameObject.categoryId);
+
+            showSetNumberOfQuestionsButton();
         } else {
             console.log("empty category");
         }
     });
 
+    // handler for the Set Number of Questions button
     $("#set-number-of-questions").click(function () {
         var selectedText = $("#number-of-questions").find("option:selected").text();
         var selectedValue = $("#number-of-questions").val();
@@ -561,6 +755,7 @@ $(document).ready(function () {
         }
     });
 
+    // handler for the Check Answer button
     $(".check-answer").on("click", function () {
         var isChecked = false;
         var questionNumber = gameObject.currentQuestionNumber;
@@ -578,21 +773,24 @@ $(document).ready(function () {
 
                 // is this the correct answer
                 if (userAnswer === correctAnswer) {
-                    displayResult("Correct Answer");
+                    displayResult(RESULT_CORRECT_ANSWER);
                     gameObject.finalResults.correctAnswerCnt++;
                 } else {
-                    displayResult("Wrong Answer");
+                    displayResult(RESULT_WRONG_ANSWER);
                     gameObject.finalResults.wrongAnswerCnt++;
                     displayCorrectAnswer(correctAnswer);
                 }
                 break;
             }
         }
+
+        // start timer to delay when the next question is displayed
         timerWait = setInterval(function () {
             waitTimer()
         }, 1000);
     });
 
+    // handler for the Restart Game button
     $(".restart-game").on("click", function () {
         resetGame();
         displayListOfCategories();

@@ -21,49 +21,56 @@
 </head>
 
 <body>
-    <h1 class="text-center mb-3 text-white">Trivia Game</h1>
+    <div class="wrapper">
+        <h1 class="text-center mb-3 text-white">Advanced Trivia Game</h1>
 
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-2 bg-muted text-center text-white my-3">
-                <div id="count-down-timer"></div>
-            </div>
-            <div class="col-md-8 bg-muted text-center text-white my-3">
-                <div id="current-category"></div>
-                <div class="row">
-                    <div class="col-md-12 bg-muted text-center text-white my-3">
-                        <select id="categories">
-                            <option value=""></option>
-                        </select>
-                        <input type="button" id="set-category" class="btn btn-primary" value="Set the Category" />
-                        <div id="question"></div>
-                    </div>
-                    <div class="col-md-12 bg-muted text-center text-white my-3">
-                        <select id="number-of-questions">
-                            <option value=""></option>
-                        </select>
-                        <input type="button" id="set-number-of-questions" class="btn btn-primary" value="Set the Number of Questions" />
-                        <div id="answers"></div>
-                    </div>
-                    <div class="col-md-12 bg-muted text-center text-white my-3">
-                        <button type="button" id="check-answer" class="btn btn-primary check-answer">Check Answer</button>
-                    </div>
-                    <div class="col-md-12 bg-muted text-center text-white my-3">
-                        <div id="result"></div>
-                        <div id="correct-answer"></div>
-                        <div id="final-results">
-                            <div id="correct-answers"></div>
-                            <div id="wrong-answers"></div>
-                            <div id="unanswered"></div>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-2 bg-muted text-center text-white my-3">
+                    <span id="count-down-timer" class="badge badge-success font-italic p-2"></span>
+                </div>
+                <div class="col-md-8 bg-muted text-center text-white my-3">
+                    <span id="current-category" class="badge badge-info font-italic p-2"></span>
+                    <div class="row">
+                        <div class="col-md-12 bg-muted text-center text-white my-3">
+                            <select id="categories">
+                                <option value=""></option>
+                            </select>
+                            <input type="button" id="set-category" class="btn btn-primary" value="Set the Category" />
+                            <div id="question"></div>
                         </div>
+                        <div class="col-md-12 bg-muted text-center text-white my-3">
+                            <select id="number-of-questions">
+                                <option value=""></option>
+                            </select>
+                            <input type="button" id="set-number-of-questions" class="btn btn-primary" value="Set the Number of Questions" />
+                            <div id="answers"></div>
+                        </div>
+                        <div class="col-md-12 bg-muted text-center text-white my-3">
+                            <button type="button" id="check-answer" class="btn btn-primary check-answer">Check Answer</button>
+                        </div>
+                        <div class="col-md-12 bg-muted text-center text-white my-3">
+                            <span id="result" class="badge badge-success font-italic p-2"></span>
+                            <div id="correct-answer"></div>
+                            <div id="final-results">
+                                <div id="correct-answers"></div>
+                                <div id="wrong-answers"></div>
+                                <div id="unanswered"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-12 bg-muted text-center text-white my-3"></div>
                     </div>
-                    <div class="col-md-12 bg-muted text-center text-white my-3"></div>
+                </div>
+                <div class="col-md-2 bg-muted text-center text-white my-3">
+                    <span id="question-number" class="badge badge-success font-italic p-2"></span>
+                    <button type="button" id="start-game" class="btn btn-primary start">Start the Game</button>
+                    <button type="button" id="restart-game" class="btn btn-primary restart-game">Restart Game</button>
                 </div>
             </div>
-            <div class="col-md-2 bg-muted text-center text-white my-3">
-                <div id="question-number"></div>
-                <button type="button" id="start-game" class="btn btn-primary start">Start the Game</button>
-                <button type="button" id="restart-game" class="btn btn-primary restart-game">Restart Game</button>
+            <div class="row">
+                <div class="col-md-12 footer bg-muted text-center text-muted">
+                    <span>© 2017: Roy Norton</span>
+                </div>
             </div>
         </div>
     </div>
