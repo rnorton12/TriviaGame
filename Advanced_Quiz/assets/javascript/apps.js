@@ -180,7 +180,7 @@ $(document).ready(function () {
         // find the correct answer location so it can be highlighted
         for(var i = 0; i < gameObject.shuffledAnswerArray.length; i++) {
             if (correctAnswer === gameObject.shuffledAnswerArray[i]) {
-                $("#custom-radio-" + (i + 1)).addClass("border border-success");
+                $("#custom-radio-" + (i + 1)).addClass("border border-primary");
                 break;
             }
         }                        
