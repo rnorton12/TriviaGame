@@ -175,6 +175,17 @@ $(document).ready(function () {
         $("#count-down-timer").html("");
     }
 
+    // highlight the correct answer by drawing a border around it
+    function highlightCorrectAnswer(correctAnswer) {
+        // find the correct answer location so it can be highlighted
+        for(var i = 0; i < gameObject.shuffledAnswerArray.length; i++) {
+            if (correctAnswer === gameObject.shuffledAnswerArray[i]) {
+                $("#custom-radio-" + (i + 1)).addClass("border border-success");
+                break;
+            }
+        }                        
+    }
+
     // show the correct answer for the current question
     function displayCorrectAnswer(answer) {
         $("#correct-answer").html("The correct answer is: " + answer);
@@ -342,6 +353,9 @@ $(document).ready(function () {
             // display the correct answer
             displayCorrectAnswer(correctAnswer);
 
+            // hight light the correct answer
+            highlightCorrectAnswer(correctAnswer);
+
             // start the wait timer for the next question
             timerWait = setInterval(function () {
                 waitTimer()
@@ -363,12 +377,9 @@ $(document).ready(function () {
             clearResult();
             clearCorrectAnswer();
 
-            // remove (detach) the answer elements
-            //           for (var i = 0; i < gameObject.shuffledAnswerArray.length; i++) {
-            //                $(".form-check").detach();
+            // remove (detach) the multiple choice questions
             $(".custom-radio").detach();
-            //           }
-
+            
             // reset the array for the next question's answers
             shuffledAnswerArray = [];
 
@@ -779,6 +790,7 @@ $(document).ready(function () {
                     displayResult(RESULT_WRONG_ANSWER);
                     gameObject.finalResults.wrongAnswerCnt++;
                     displayCorrectAnswer(correctAnswer);
+                    highlightCorrectAnswer(correctAnswer);                  
                 }
                 break;
             }
