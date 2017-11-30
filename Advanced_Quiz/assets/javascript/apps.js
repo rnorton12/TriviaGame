@@ -477,7 +477,7 @@ $(document).ready(function () {
                 alert("The page will be reloaded.");
                 location.reload();
             }
-        })
+        });
     }
 
     // display a list of categories for the user to choose from
@@ -558,7 +558,7 @@ $(document).ready(function () {
             console.log("totalCategoryQuestions: " + response.category_question_count.total_question_count);
             gameObject.totalQuestions = response.category_question_count.total_question_count;
             populateQuestionCount();
-        })
+        });
     }
 
     // To generate a question with multiple choice use: https://opentdb.com/api.php?amount=10&category=10&type=multiple
